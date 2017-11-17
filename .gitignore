@@ -1,0 +1,8 @@
+# Files
+phpunit.xml
+composer.lock
+tests/stubs/new_stub
+
+# Folders
+vendor
+.idea
