@@ -1,0 +1,25 @@
+{
+    "name": "huang-yi/swoole-watcher",
+    "description": "Swoole file watcher.",
+    "keywords": ["swoole", "watcher", "inotify"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huang Yi",
+            "email": "coodeer@163.com"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "~6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "HuangYi\\Watcher\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HuangYi\\Watcher\\Tests\\": "tests"
+        }
+    }
+}
