@@ -132,7 +132,7 @@ class Watcher
     /**
      * Watch handler.
      */
-    protected function watchHandler()
+    public function watchHandler()
     {
         if (! $events = inotify_read($this->inotify)) {
             return;
