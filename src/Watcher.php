@@ -8,18 +8,18 @@ use Exception;
 class Watcher
 {
     /**
-     * Watched paths.
+     * Watched directories.
      *
      * @var array
      */
-    protected $paths;
+    protected $directories;
 
     /**
-     * Excluded paths.
+     * Excluded directories.
      *
      * @var array
      */
-    protected $excludedPaths;
+    protected $excludedDirectories;
 
     /**
      * Watched file types.
@@ -41,7 +41,7 @@ class Watcher
      * @var array
      */
     protected $masks = [
-        IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM, IN_CREATE, IN_DELETE,
+        IN_ATTRIB, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE,
     ];
 
     /**
@@ -49,7 +49,7 @@ class Watcher
      *
      * @var int
      */
-    protected $maskValue = IN_MODIFY | IN_MOVED_TO | IN_MOVED_FROM | IN_CREATE | IN_DELETE;
+    protected $maskValue = IN_ATTRIB | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MODIFY | IN_MOVE;
 
     /**
      * @var Resource
@@ -57,49 +57,53 @@ class Watcher
     protected $inotify;
 
     /**
-     * Watched paths.
+     * Watched directories.
      *
      * @var array
      */
-    protected $watchedPaths = [];
+    protected $watchedDirectories = [];
 
     /**
      * Watcher constructor.
      *
-     * @param array|string $paths
-     * @param array|string $excludedPaths
+     * @param array|string $directories
+     * @param array|string $excludedDirectories
      * @param array|string $types
      * @throws \Exception
      */
-    public function __construct($paths, $excludedPaths, $types)
+    public function __construct($directories, $excludedDirectories, $types)
     {
         if (! extension_loaded('inotify')) {
             throw new Exception('Extension inotify is required!');
         }
 
-        $this->paths = (array) $paths;
-        $this->excludedPaths = (array) $excludedPaths;
+        $this->directories = (array) $directories;
+        $this->excludedDirectories = (array) $excludedDirectories;
         $this->types = (array) $types;
-        $this->inotify = inotify_init();
 
-        $this->registerEvent();
+        $this->init();
     }
 
     /**
      * Run watcher.
      */
-    public function run()
+    public function watch()
     {
-        $this->watchPaths();
+        foreach ($this->directories as $directory) {
+            if (is_dir($directory)) {
+                $this->watchAllDirectories($directory);
+            }
+        }
     }
 
     /**
-     * Rewatch paths.
+     * Rewatch.
      */
-    public function rewatchPaths()
+    public function rewatch()
     {
-        $this->clearWatches();
-        $this->watchPaths();
+        $this->stop();
+        $this->init();
+        $this->watch();
     }
 
     /**
@@ -107,79 +111,69 @@ class Watcher
      */
     public function stop()
     {
-        $this->clearWatches();
-
         swoole_event_del($this->inotify);
         swoole_event_exit();
 
-        $this->inotify = null;
+        fclose($this->inotify);
+
+        $this->watchedDirectories = [];
     }
 
     /**
-     * Register event.
+     * Initialize.
      */
-    protected function registerEvent()
+    protected function init()
     {
-        swoole_event_add($this->inotify, function () {
-            if (! $events = inotify_read($this->inotify)) {
-                return;
-            }
+        $this->inotify = inotify_init();
 
-            foreach ($events as $event) {
-                $break = ! $this->handle($event);
-
-                if ($event['mask'] === IN_IGNORED) {
-                    $this->rewatchPath($event['wd']);
-                }
-
-                if ($break) {
-                    break;
-                }
-            }
-        });
+        swoole_event_add($this->inotify, [$this, 'watchHandler']);
     }
 
     /**
-     * Watch paths.
+     * Watch handler.
      */
-    protected function watchPaths()
+    protected function watchHandler()
     {
-        foreach ($this->paths as $path) {
-            if (is_dir($path)) {
-                $this->watchDir($path);
-            } else {
-                $this->watchFile($path);
+        if (! $events = inotify_read($this->inotify)) {
+            return;
+        }
+
+        foreach ($events as $event) {
+            if (! empty($event['name']) && ! $this->inWatchedTypes($event['name'])) {
+                continue;
+            }
+
+            if (! $this->handle($event)) {
+                break;
             }
         }
     }
 
     /**
-     * Watch all subdirectories and files under the directory.
+     * Watch the directory and all subdirectories under the directory.
      *
-     * @param string $dir
+     * @param string $directory
      * @return bool
      */
-    protected function watchDir($dir)
+    protected function watchAllDirectories($directory)
     {
-        $dir = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $directory = rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
-        if (! $this->watchPath($dir)) {
+        if (! $this->watchDirectory($directory)) {
             return false;
         }
 
-        $names = scandir($dir);
+        $names = scandir($directory);
 
         foreach ($names as $name) {
             if (in_array($name, ['.', '..'], true)) {
                 continue;
             }
 
-            $path = $dir . $name;
+            $subdirectory = $directory . $name;
 
-            if (is_dir($path)) {
-                $this->watchDir($path);
-            } else {
-                $this->watchFile($path);
+            if (is_dir($subdirectory)) {
+                $this->watchDirectory($subdirectory);
             }
         }
 
@@ -187,95 +181,64 @@ class Watcher
     }
 
     /**
-     * Watch file.
+     * Watch directory.
      *
-     * @param string $file
+     * @param string $directory
      * @return bool
      */
-    protected function watchFile($file)
+    protected function watchDirectory($directory)
     {
-        return $this->watchPath($file);
-    }
-
-    /**
-     * Watch path.
-     *
-     * @param string $path
-     * @return bool
-     */
-    protected function watchPath($path)
-    {
-        if (! $this->shouldBeWatched($path)) {
+        if ($this->isExcluded($directory)) {
             return false;
         }
 
-        if (! isset($this->watchedPaths[$path])) {
-            $wd = inotify_add_watch($this->inotify, $path, $this->getMaskValue());
-            $this->watchedPaths[$wd] = $path;
+        if (! $this->isWatched($directory)) {
+            $wd = inotify_add_watch($this->inotify, $directory, $this->getMaskValue());
+            $this->watchedDirectories[$wd] = $directory;
         }
 
         return true;
     }
 
     /**
-     * Rewatch path.
+     * Determine if the directory is excluded.
      *
-     * @param int $wd
+     * @param string $directory
      * @return bool
      */
-    protected function rewatchPath($wd)
+    public function isExcluded($directory)
     {
-        if (! isset($this->watchedPaths[$wd])) {
-            return false;
-        }
-
-        $path = $this->watchedPaths[$wd];
-        unset($this->watchedPaths[$wd]);
-
-        $this->watchPath($path);
+        return in_array($directory, $this->excludedDirectories, true);
     }
 
     /**
-     * Determine if the path should be watched.
+     * Determine if the directory has been watched.
      *
-     * @param string $path
+     * @param $directory
      * @return bool
      */
-    protected function shouldBeWatched($path)
+    public function isWatched($directory)
     {
-        if (in_array($path, $this->excludedPaths, true)) {
-            return false;
-        }
+        return in_array($directory, $this->watchedDirectories, true);
+    }
 
-        if (! file_exists($path)) {
-            return false;
-        }
-
-        if (empty($this->types) || is_dir($path)) {
-            return true;
-        }
-
+    /**
+     * Determine if the file type should be watched.
+     *
+     * @param string $file
+     * @return bool
+     */
+    protected function inWatchedTypes($file)
+    {
         foreach ($this->types as $type) {
             $start = strlen($type);
 
-            if (substr($path, -$start, $start) === $type) {
+            if (substr($file, -$start, $start) === $type) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    /**
-     * Clear watches.
-     */
-    protected function clearWatches()
-    {
-        foreach ($this->watchedPaths as $wd => $path) {
-            inotify_rm_watch($this->inotify, $wd);
-        }
-
-        $this->watchedPaths = [];
     }
 
     /**
@@ -315,47 +278,47 @@ class Watcher
     }
 
     /**
-     * Get watched paths.
+     * Get watched directories.
      *
      * @return array
      */
-    public function getPaths()
+    public function getDirectories()
     {
-        return $this->paths;
+        return $this->directories;
     }
 
     /**
-     * Set watched paths.
+     * Set watched directories.
      *
-     * @param array|string $paths
+     * @param array|string $directories
      * @return $this
      */
-    public function setPaths($paths)
+    public function setDirectories($directories)
     {
-        $this->paths = (array) $paths;
+        $this->directories = (array) $directories;
 
         return $this;
     }
 
     /**
-     * Get excluded paths.
+     * Get excluded directories.
      *
      * @return array
      */
-    public function getExcludedPaths()
+    public function getExcludedDirectories()
     {
-        return $this->excludedPaths;
+        return $this->excludedDirectories;
     }
 
     /**
-     * Set excluded paths.
+     * Set excluded directories.
      *
-     * @param array|string $excludedPaths
+     * @param array|string $excludedDirectories
      * @return $this
      */
-    public function setExcludedPaths($excludedPaths)
+    public function setExcludedPaths($excludedDirectories)
     {
-        $this->excludedPaths = (array) $excludedPaths;
+        $this->excludedDirectories = (array) $excludedDirectories;
 
         return $this;
     }
@@ -420,12 +383,12 @@ class Watcher
     }
 
     /**
-     * Get watched paths.
+     * Get watched directories.
      *
      * @return array
      */
-    public function getWatchedPaths()
+    public function getWatchedDirectories()
     {
-        return $this->watchedPaths;
+        return $this->watchedDirectories;
     }
 }

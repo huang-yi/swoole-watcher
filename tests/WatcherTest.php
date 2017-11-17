@@ -15,34 +15,29 @@ class WatcherTest extends TestCase
     {
         parent::setUp();
 
-        $paths = __DIR__ . '/stubs/';
-        $excludedPaths = __DIR__ . '/stubs/excluded_stub';
+        $directories = __DIR__ . '/stubs/';
+        $excludedDirectories = __DIR__ . '/stubs/excluded_dir';
         $types = '_stub';
 
-        $this->watcher = new Watcher($paths, $excludedPaths, $types);
+        $this->watcher = new Watcher($directories, $excludedDirectories, $types);
     }
 
-    public function testRun()
+    public function testWatch()
     {
-        $this->watcher->run();
+        $this->watcher->watch();
 
-        $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedPaths()));
-        $this->assertTrue(in_array(__DIR__ . '/stubs/watched_stub', $this->watcher->getWatchedPaths()));
+        $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedDirectories()));
+        $this->assertFalse(in_array(__DIR__ . '/stubs/excluded_dir', $this->watcher->getWatchedDirectories()));
     }
 
-    public function testRewatchPaths()
+    public function testRewatch()
     {
-        $this->watcher->run();
+        $this->watcher->watch();
+        $this->watcher->setExcludedPaths([]);
+        $this->watcher->rewatch();
 
-        $this->watcher->setExcludedPaths([
-            __DIR__ . '/stubs/watched_stub',
-        ]);
-
-        $this->watcher->rewatchPaths();
-
-        $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedPaths()));
-        $this->assertFalse(in_array(__DIR__ . '/stubs/watched_stub', $this->watcher->getWatchedPaths()));
-        $this->assertTrue(in_array(__DIR__ . '/stubs/excluded_stub', $this->watcher->getWatchedPaths()));
+        $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedDirectories()));
+        $this->assertTrue(in_array(__DIR__ . '/stubs/excluded_dir', $this->watcher->getWatchedDirectories()));
     }
 
     public function testSetHandler()
@@ -56,22 +51,22 @@ class WatcherTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testSetPaths()
+    public function testSetDirectories()
     {
         $paths = 'foobar';
 
-        $this->watcher->setPaths($paths);
+        $this->watcher->setDirectories($paths);
 
-        $this->assertEquals((array) $paths, $this->watcher->getPaths());
+        $this->assertEquals((array) $paths, $this->watcher->getDirectories());
     }
 
-    public function testSetExcludedPaths()
+    public function testSetExcludedDirectories()
     {
-        $excludedPaths = 'foobar';
+        $excludedDirectories = 'foobar';
 
-        $this->watcher->setExcludedPaths($excludedPaths);
+        $this->watcher->setExcludedPaths($excludedDirectories);
 
-        $this->assertEquals((array) $excludedPaths, $this->watcher->getExcludedPaths());
+        $this->assertEquals((array) $excludedDirectories, $this->watcher->getExcludedDirectories());
     }
 
     public function testSetTypes()
