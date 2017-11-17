@@ -1,0 +1,11 @@
+language: php
+dist: trusty
+sudo: false
+
+before_install:
+  - pecl install inotify
+
+install:
+  - travis_retry composer install --no-suggest --prefer-dist -n -o
+
+script: vendor/bin/phpunit
