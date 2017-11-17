@@ -1,7 +1,7 @@
 {
     "name": "huang-yi/swoole-watcher",
     "description": "Swoole file watcher.",
-    "keywords": ["swoole", "watcher", "inotify"],
+    "keywords": ["watcher", "inotify", "swoole"],
     "license": "MIT",
     "authors": [
         {
