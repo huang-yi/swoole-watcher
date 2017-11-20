@@ -16,7 +16,7 @@ class WatcherTest extends TestCase
         parent::setUp();
 
         $directories = __DIR__ . '/stubs/';
-        $excludedDirectories = __DIR__ . '/stubs/excluded_dir';
+        $excludedDirectories = __DIR__ . '/stubs/excluded_dir/';
         $suffixes = '_stub';
 
         $this->watcher = new Watcher($directories, $excludedDirectories, $suffixes);
@@ -27,7 +27,7 @@ class WatcherTest extends TestCase
         $this->watcher->watch();
 
         $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedDirectories()));
-        $this->assertFalse(in_array(__DIR__ . '/stubs/excluded_dir', $this->watcher->getWatchedDirectories()));
+        $this->assertFalse(in_array(__DIR__ . '/stubs/excluded_dir/', $this->watcher->getWatchedDirectories()));
     }
 
     public function testRewatch()
@@ -37,7 +37,7 @@ class WatcherTest extends TestCase
         $this->watcher->rewatch();
 
         $this->assertTrue(in_array(__DIR__ . '/stubs/', $this->watcher->getWatchedDirectories()));
-        $this->assertTrue(in_array(__DIR__ . '/stubs/excluded_dir', $this->watcher->getWatchedDirectories()));
+        $this->assertTrue(in_array(__DIR__ . '/stubs/excluded_dir/', $this->watcher->getWatchedDirectories()));
     }
 
     public function testSetHandler()
