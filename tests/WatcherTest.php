@@ -17,9 +17,9 @@ class WatcherTest extends TestCase
 
         $directories = __DIR__ . '/stubs/';
         $excludedDirectories = __DIR__ . '/stubs/excluded_dir';
-        $types = '_stub';
+        $suffixes = '_stub';
 
-        $this->watcher = new Watcher($directories, $excludedDirectories, $types);
+        $this->watcher = new Watcher($directories, $excludedDirectories, $suffixes);
     }
 
     public function testWatch()
@@ -71,11 +71,11 @@ class WatcherTest extends TestCase
 
     public function testSetTypes()
     {
-        $types = 'foobar';
+        $suffixes = 'foobar';
 
-        $this->watcher->setTypes($types);
+        $this->watcher->setSuffixes($suffixes);
 
-        $this->assertEquals((array) $types, $this->watcher->getTypes());
+        $this->assertEquals((array) $suffixes, $this->watcher->getSuffixes());
     }
 
     public function testSetMasks()

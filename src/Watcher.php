@@ -22,11 +22,11 @@ class Watcher
     protected $excludedDirectories;
 
     /**
-     * Watched file types.
+     * Watched file suffixes.
      *
      * @var array
      */
-    protected $types;
+    protected $suffixes;
 
     /**
      * Watch handler.
@@ -68,10 +68,10 @@ class Watcher
      *
      * @param array|string $directories
      * @param array|string $excludedDirectories
-     * @param array|string $types
+     * @param array|string $suffixes
      * @throws \Exception
      */
-    public function __construct($directories, $excludedDirectories, $types)
+    public function __construct($directories, $excludedDirectories, $suffixes)
     {
         if (! extension_loaded('inotify')) {
             throw new Exception('Extension inotify is required!');
@@ -79,7 +79,7 @@ class Watcher
 
         $this->directories = (array) $directories;
         $this->excludedDirectories = (array) $excludedDirectories;
-        $this->types = (array) $types;
+        $this->suffixes = (array) $suffixes;
 
         $this->init();
     }
@@ -139,7 +139,7 @@ class Watcher
         }
 
         foreach ($events as $event) {
-            if (! empty($event['name']) && ! $this->inWatchedTypes($event['name'])) {
+            if (! empty($event['name']) && ! $this->inWatchedSuffixes($event['name'])) {
                 continue;
             }
 
@@ -228,12 +228,12 @@ class Watcher
      * @param string $file
      * @return bool
      */
-    protected function inWatchedTypes($file)
+    protected function inWatchedSuffixes($file)
     {
-        foreach ($this->types as $type) {
-            $start = strlen($type);
+        foreach ($this->suffixes as $suffix) {
+            $start = strlen($suffix);
 
-            if (substr($file, -$start, $start) === $type) {
+            if (substr($file, -$start, $start) === $suffix) {
                 return true;
             }
         }
@@ -324,24 +324,24 @@ class Watcher
     }
 
     /**
-     * Get watched file types.
+     * Get watched file suffixes.
      *
      * @return array
      */
-    public function getTypes()
+    public function getSuffixes()
     {
-        return $this->types;
+        return $this->suffixes;
     }
 
     /**
-     * Set watched file types.
+     * Set watched file suffixes.
      *
-     * @param array|string $types
+     * @param array|string $suffixes
      * @return $this
      */
-    public function setTypes($types)
+    public function setSuffixes($suffixes)
     {
-        $this->types = (array) $types;
+        $this->suffixes = (array) $suffixes;
 
         return $this;
     }
