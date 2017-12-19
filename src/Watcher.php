@@ -173,7 +173,7 @@ class Watcher
             $subdirectory = $directory . $name;
 
             if (is_dir($subdirectory)) {
-                $this->watchDirectory($subdirectory . DIRECTORY_SEPARATOR);
+                $this->watchAllDirectories($subdirectory);
             }
         }
 
