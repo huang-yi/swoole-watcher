@@ -1,6 +1,6 @@
 <?php
 
-namespace HuangYi\Watcher;
+namespace HuangYi\Watcher\Commands;
 
 use HuangYi\Watcher\Contracts\Command;
 
@@ -41,7 +41,7 @@ class Fswatch implements Command
      *
      * @var float
      */
-    protected $latency = 0.001;
+    protected $latency = 0.0001;
 
     /**
      * A file to set the path filters.
@@ -96,35 +96,59 @@ class Fswatch implements Command
     /**
      * Get the executable command.
      *
-     * @return string
+     * @return array
      */
-    public function getCommand(): string
+    public function getCommand(): array
     {
-        return sprintf(
-            'fswatch %s %s',
-            $this->concatOptions(),
-            implode(' ', $this->getPaths())
-        );
+        return [
+            '/usr/bin/fswatch',
+            array_merge(
+                $this->concatOptions(),
+                $this->getPaths()
+            ),
+        ];
+    }
+
+    /**
+     * Parse events from the outputs.
+     *
+     * @param  string  $outputs
+     * @return array
+     */
+    public function parseEvents(string $outputs): array
+    {
+        $events = [];
+
+        foreach (explode("\n", trim($outputs)) as $line) {
+            $pieces = explode(' ', $line);
+
+            $events[] = [
+                'path' => $pieces[0],
+                'events' => $pieces[1],
+            ];
+        }
+
+        return $events;
     }
 
     /**
      * Concat the options.
      *
-     * @return string
+     * @return array
      */
     protected function concatOptions()
     {
-        $str = '';
+        $options = [];
 
         foreach ($this->getOptions() as $key => $value) {
             if ($value === true) {
-                $str .= ' '.$key;
+                $options[] = $key;
             } elseif ($value) {
-                $str .= ' '.$key.' '.$value;
+                $options[] = $key.'='.$value;
             }
         }
 
-        return $str;
+        return $options;
     }
 
     /**
