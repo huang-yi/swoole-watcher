@@ -3,6 +3,8 @@
 namespace HuangYi\Watcher\Commands;
 
 use HuangYi\Watcher\Contracts\Command;
+use HuangYi\Watcher\Exceptions\CommandNotFoundException;
+use Symfony\Component\Process\ExecutableFinder;
 
 class Fswatch implements Command
 {
@@ -21,6 +23,13 @@ class Fswatch implements Command
     const IS_SYMLINK         = 2048;
     const LINK               = 4096;
     const OVERFLOW           = 8192;
+
+    /**
+     * The user-specified binary path.
+     *
+     * @var string
+     */
+    protected $binary;
 
     /**
      * The path to be watched.
@@ -86,11 +95,14 @@ class Fswatch implements Command
      * Fswatch constructor.
      *
      * @param  string  $path
+     * @param  string  $binary
      * @return void
      */
-    public function __construct($path)
+    public function __construct($path, $binary = null)
     {
         $this->addPath($path);
+
+        $this->binary = $binary;
     }
 
     /**
@@ -101,7 +113,7 @@ class Fswatch implements Command
     public function getCommand(): array
     {
         return [
-            '/usr/bin/fswatch',
+            $this->getExecutableBinary(),
             array_merge(
                 $this->concatOptions(),
                 $this->getPaths()
@@ -129,6 +141,24 @@ class Fswatch implements Command
         }
 
         return $events;
+    }
+
+    /**
+     * Get the executable binary.
+     *
+     * @return string
+     */
+    protected function getExecutableBinary()
+    {
+        if ($this->binary) {
+            return $this->binary;
+        }
+
+        if (! $binary = (new ExecutableFinder)->find('fswatch')) {
+            throw new CommandNotFoundException('Command "fswatch" not found.');
+        }
+
+        return $binary;
     }
 
     /**
