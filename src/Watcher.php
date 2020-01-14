@@ -60,14 +60,11 @@ class Watcher implements WatcherContract
     /**
      * Start the watcher.
      *
-     * @param  bool  $start
      * @return void
      */
-    public function watch($start = true)
+    public function watch()
     {
-        if ($start) {
-            $this->process->start();
-        }
+        $this->process->start();
 
         swoole_event_add($this->process->pipe, function () {
             $outputs = $this->process->read();
@@ -82,7 +79,7 @@ class Watcher implements WatcherContract
      * @param  string  $outputs
      * @return void
      */
-    public function fireCallback($outputs)
+    protected function fireCallback($outputs)
     {
         if ($callback = $this->getCallback()) {
             call_user_func($callback, $outputs);
