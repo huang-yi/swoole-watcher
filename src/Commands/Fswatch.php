@@ -57,7 +57,7 @@ class Fswatch implements Command
      *
      * @var string
      */
-    protected $fromPath = null;
+    protected $fromFile = null;
 
     /**
      * Indicates if track directories recursively.
@@ -151,11 +151,17 @@ class Fswatch implements Command
     protected function getExecutableBinary()
     {
         if ($this->binary) {
-            return $this->binary;
+            $binary = $this->binary;
+        } else {
+            $binary = (new ExecutableFinder)->find('fswatch');
         }
 
-        if (! $binary = (new ExecutableFinder)->find('fswatch')) {
-            throw new CommandNotFoundException('Command "fswatch" not found.');
+        if (! $binary) {
+            throw new CommandNotFoundException("Command 'fswatch' not found.");
+        }
+
+        if (! @is_executable($binary)) {
+            throw new CommandNotFoundException("Command '$binary' is not executable.");
         }
 
         return $binary;
@@ -191,7 +197,7 @@ class Fswatch implements Command
         $defaultOptions = [
             '--event'       => $this->event,
             '--latency'     => $this->latency,
-            '--from-path'   => $this->fromPath,
+            '--from-file'   => $this->fromFile,
             '--recursive'   => $this->recursive,
             '--insensitive' => $this->insensitive,
         ];
@@ -290,24 +296,24 @@ class Fswatch implements Command
     }
 
     /**
-     * Get the from path.
+     * Get the from file.
      *
      * @return string
      */
-    public function getFromPath()
+    public function getFromFile()
     {
-        return $this->fromPath;
+        return $this->fromFile;
     }
 
     /**
-     * Set the from path.
+     * Set the from file.
      *
-     * @param  string  $fromPath
+     * @param  string  $fromFile
      * @return $this
      */
-    public function setFromPath(string $fromPath)
+    public function setFromFile(string $fromFile)
     {
-        $this->fromPath = $fromPath;
+        $this->fromFile = $fromFile;
 
         return $this;
     }
