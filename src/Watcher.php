@@ -50,8 +50,10 @@ class Watcher implements WatcherContract
      */
     protected function init()
     {
-        $this->process = new Process(function ($process) {
-            $process->exec(...$this->command->getCommand());
+        $command = $this->command->getCommand();
+
+        $this->process = new Process(function ($process) use ($command) {
+            $process->exec(...$command);
 
             swoole_event_add($process->pipe, function () use ($process) {
                 $outputs = $process->read();
