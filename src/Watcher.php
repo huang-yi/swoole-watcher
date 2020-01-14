@@ -53,6 +53,14 @@ class Watcher implements WatcherContract
         $this->process = new Process(function ($process) {
             $process->exec(...$this->command->getCommand());
         }, true);
+
+        swoole_event_add($this->process->pipe, function () {
+            $outputs = $this->process->read();
+
+            if ($callback = $this->getOnChangeCallback()) {
+                call_user_func($callback, $outputs);
+            }
+        });
     }
 
     /**
@@ -63,14 +71,6 @@ class Watcher implements WatcherContract
     public function watch()
     {
         $this->process->start();
-
-        swoole_event_add($this->process->pipe, function () {
-            $outputs = $this->process->read();
-
-            if ($callback = $this->getOnChangeCallback()) {
-                call_user_func($callback, $outputs);
-            }
-        });
     }
 
     /**
