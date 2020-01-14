@@ -57,7 +57,7 @@ class Fswatch implements Command
      *
      * @var string
      */
-    protected $fromFile = null;
+    protected $filterFrom = null;
 
     /**
      * Indicates if track directories recursively.
@@ -197,7 +197,7 @@ class Fswatch implements Command
         $defaultOptions = [
             '--event'       => $this->event,
             '--latency'     => $this->latency,
-            '--from-file'   => $this->fromFile,
+            '--filter-from'   => $this->filterFrom,
             '--recursive'   => $this->recursive,
             '--insensitive' => $this->insensitive,
         ];
@@ -296,24 +296,24 @@ class Fswatch implements Command
     }
 
     /**
-     * Get the from file.
+     * Get the filter file.
      *
      * @return string
      */
-    public function getFromFile()
+    public function getFilterFrom()
     {
-        return $this->fromFile;
+        return $this->filterFrom;
     }
 
     /**
-     * Set the from file.
+     * Set the filter file.
      *
-     * @param  string  $fromFile
+     * @param  string  $filterFrom
      * @return $this
      */
-    public function setFromFile(string $fromFile)
+    public function setFilterFrom(string $filterFrom)
     {
-        $this->fromFile = $fromFile;
+        $this->filterFrom = $filterFrom;
 
         return $this;
     }
