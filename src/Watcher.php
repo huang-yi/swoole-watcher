@@ -112,6 +112,8 @@ class Watcher implements WatcherContract
     public function stop()
     {
         $this->process->exit();
+
+        Process::wait();
     }
 
     /**
