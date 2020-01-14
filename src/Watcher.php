@@ -28,7 +28,7 @@ class Watcher implements WatcherContract
      *
      * @var \Closure
      */
-    protected $onChangeCallback;
+    protected $callback;
 
     /**
      * Watcher constructor.
@@ -72,10 +72,21 @@ class Watcher implements WatcherContract
         swoole_event_add($this->process->pipe, function () {
             $outputs = $this->process->read();
 
-            if ($callback = $this->getOnChangeCallback()) {
-                call_user_func($callback, $outputs);
-            }
+            $this->fireCallback($outputs);
         });
+    }
+
+    /**
+     * Fire the change event callback.
+     *
+     * @param  string  $outputs
+     * @return void
+     */
+    public function fireCallback($outputs)
+    {
+        if ($callback = $this->getCallback()) {
+            call_user_func($callback, $outputs);
+        }
     }
 
     /**
@@ -83,16 +94,16 @@ class Watcher implements WatcherContract
      *
      * @return \Closure
      */
-    public function getOnChangeCallback()
+    public function getCallback()
     {
-        if (! $this->onChangeCallback) {
+        if (! $this->callback) {
             return null;
         }
 
         return function ($outputs) {
             $events = $this->command->parseEvents($outputs);
 
-            call_user_func($this->onChangeCallback, $events);
+            call_user_func($this->callback, $events);
         };
     }
 
@@ -104,7 +115,7 @@ class Watcher implements WatcherContract
      */
     public function onChange(Closure $callback)
     {
-        $this->onChangeCallback = $callback;
+        $this->callback = $callback;
 
         return $this;
     }
