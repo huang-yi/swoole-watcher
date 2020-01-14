@@ -67,20 +67,12 @@ class Fswatch implements Command
     protected $recursive = true;
 
     /**
-     * Indicates if use case insensitive regular expressions.
-     *
-     * @var bool
-     */
-    protected $insensitive = true;
-
-    /**
      * The fixed options.
      *
      * @var array
      */
     protected $fixedOptions = [
         '--numeric'     => true,
-        '--extended'    => true,
         '--event-flags' => true,
     ];
 
@@ -197,9 +189,8 @@ class Fswatch implements Command
         $defaultOptions = [
             '--event'       => $this->event,
             '--latency'     => $this->latency,
-            '--filter-from'   => $this->filterFrom,
             '--recursive'   => $this->recursive,
-            '--insensitive' => $this->insensitive,
+            '--filter-from' => $this->filterFrom,
         ];
 
         return array_merge($defaultOptions, $this->userOptions, $this->fixedOptions);
