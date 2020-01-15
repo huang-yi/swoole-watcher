@@ -3,15 +3,17 @@ dist: trusty
 sudo: false
 
 php:
-  - 7.0
-  - 7.1
-  - 7.2
+  - '7.2'
+  - '7.3'
+  - '7.4'
 
 before_install:
-  - pecl install swoole
-  - pecl install inotify
+  - sudo apt-get update
+  - sudo apt-get -y fswatch
+  - printf "\n" | pecl install swoole
 
 install:
-  - travis_retry composer install --no-suggest --prefer-dist -n -o
+  - travis_retry composer install --no-suggest --prefer-dist
 
-script: vendor/bin/phpunit
+script:
+  - composer test
