@@ -3,7 +3,8 @@
 namespace HuangYi\Watcher\Commands;
 
 use HuangYi\Watcher\Contracts\Command;
-use HuangYi\Watcher\Exceptions\CommandNotFoundException;
+use HuangYi\Watcher\Exceptions\InvalidBinaryException;
+use HuangYi\Watcher\Exceptions\InvalidOutputException;
 use Symfony\Component\Process\ExecutableFinder;
 
 class Fswatch implements Command
@@ -39,34 +40,6 @@ class Fswatch implements Command
     protected $paths = [];
 
     /**
-     * The watched events.
-     *
-     * @var int
-     */
-    protected $event;
-
-    /**
-     * The latency time in seconds.
-     *
-     * @var float
-     */
-    protected $latency = 0.0001;
-
-    /**
-     * A file to set the path filters.
-     *
-     * @var string
-     */
-    protected $filterFrom = null;
-
-    /**
-     * Indicates if track directories recursively.
-     *
-     * @var bool
-     */
-    protected $recursive = true;
-
-    /**
      * The fixed options.
      *
      * @var array
@@ -98,19 +71,40 @@ class Fswatch implements Command
     }
 
     /**
-     * Get the executable command.
+     * Get the executable binary.
+     *
+     * @return string
+     */
+    public function getBinary(): string
+    {
+        if ($this->binary) {
+            $binary = $this->binary;
+        } else {
+            $binary = (new ExecutableFinder)->find('fswatch');
+        }
+
+        if (! $binary) {
+            throw new InvalidBinaryException("Binary file 'fswatch' not found.");
+        }
+
+        if (! @is_executable($binary)) {
+            throw new InvalidBinaryException("Binary file '$binary' is not executable.");
+        }
+
+        return $binary;
+    }
+
+    /**
+     * Get the command options.
      *
      * @return array
      */
-    public function getCommand(): array
+    public function getArguments(): array
     {
-        return [
-            $this->getExecutableBinary(),
-            array_merge(
-                $this->concatOptions(),
-                $this->getPaths()
-            ),
-        ];
+        return array_merge(
+            $this->concatOptions(),
+            $this->getPaths()
+        );
     }
 
     /**
@@ -126,6 +120,14 @@ class Fswatch implements Command
         foreach (explode("\n", trim($outputs)) as $line) {
             $pieces = explode(' ', $line);
 
+            if (count($pieces) != 2) {
+                throw new InvalidOutputException($outputs);
+            }
+
+            if (! is_numeric($pieces[1])) {
+                throw new InvalidOutputException($outputs);
+            }
+
             $events[] = [
                 'path' => $pieces[0],
                 'events' => $pieces[1],
@@ -136,35 +138,11 @@ class Fswatch implements Command
     }
 
     /**
-     * Get the executable binary.
-     *
-     * @return string
-     */
-    protected function getExecutableBinary()
-    {
-        if ($this->binary) {
-            $binary = $this->binary;
-        } else {
-            $binary = (new ExecutableFinder)->find('fswatch');
-        }
-
-        if (! $binary) {
-            throw new CommandNotFoundException("Command 'fswatch' not found.");
-        }
-
-        if (! @is_executable($binary)) {
-            throw new CommandNotFoundException("Command '$binary' is not executable.");
-        }
-
-        return $binary;
-    }
-
-    /**
      * Concat the options.
      *
      * @return array
      */
-    protected function concatOptions()
+    public function concatOptions()
     {
         $options = [];
 
@@ -186,14 +164,7 @@ class Fswatch implements Command
      */
     public function getOptions()
     {
-        $defaultOptions = [
-            '--event'       => $this->event,
-            '--latency'     => $this->latency,
-            '--recursive'   => $this->recursive,
-            '--filter-from' => $this->filterFrom,
-        ];
-
-        return array_merge($defaultOptions, $this->userOptions, $this->fixedOptions);
+        return array_merge($this->userOptions, $this->fixedOptions);
     }
 
     /**
@@ -236,121 +207,6 @@ class Fswatch implements Command
         foreach ($paths as $path) {
             $this->addPath($path);
         }
-
-        return $this;
-    }
-
-    /**
-     * Get the event.
-     *
-     * @return int
-     */
-    public function getEvent()
-    {
-        return $this->event;
-    }
-
-    /**
-     * Set the event.
-     *
-     * @param  int  $event
-     * @return $this
-     */
-    public function setEvent(int $event)
-    {
-        $this->event = $event;
-
-        return $this;
-    }
-
-    /**
-     * Get the latency.
-     *
-     * @return float
-     */
-    public function getLatency()
-    {
-        return $this->latency;
-    }
-
-    /**
-     * Set the latency.
-     *
-     * @param  float  $latency
-     * @return $this
-     */
-    public function setLatency(float $latency)
-    {
-        $this->latency = $latency;
-
-        return $this;
-    }
-
-    /**
-     * Get the filter file.
-     *
-     * @return string
-     */
-    public function getFilterFrom()
-    {
-        return $this->filterFrom;
-    }
-
-    /**
-     * Set the filter file.
-     *
-     * @param  string  $filterFrom
-     * @return $this
-     */
-    public function setFilterFrom(string $filterFrom)
-    {
-        $this->filterFrom = $filterFrom;
-
-        return $this;
-    }
-
-    /**
-     * Get the recursive.
-     *
-     * @return bool
-     */
-    public function getRecursive()
-    {
-        return $this->recursive;
-    }
-
-    /**
-     * Set the recursive.
-     *
-     * @param  bool  $recursive
-     * @return $this
-     */
-    public function setRecursive(bool $recursive)
-    {
-        $this->recursive = $recursive;
-
-        return $this;
-    }
-
-    /**
-     * Get the insensitive.
-     *
-     * @return bool
-     */
-    public function getInsensitive()
-    {
-        return $this->insensitive;
-    }
-
-    /**
-     * Get the insensitive.
-     *
-     * @param  bool  $insensitive
-     * @return $this
-     */
-    public function setInsensitive(bool $insensitive)
-    {
-        $this->insensitive = $insensitive;
 
         return $this;
     }
