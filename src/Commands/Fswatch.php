@@ -50,11 +50,11 @@ class Fswatch implements Command
     ];
 
     /**
-     * The user-defined options.
+     * The command options.
      *
      * @var array
      */
-    protected $userOptions = [];
+    protected $options = [];
 
     /**
      * Fswatch constructor.
@@ -164,7 +164,20 @@ class Fswatch implements Command
      */
     public function getOptions()
     {
-        return array_merge($this->userOptions, $this->fixedOptions);
+        return array_merge($this->options, $this->fixedOptions);
+    }
+
+    /**
+     * Set command options.
+     *
+     * @param  array  $options
+     * @return $this
+     */
+    public function setOptions(array $options)
+    {
+        $this->options = $options;
+
+        return $this;
     }
 
     /**
@@ -207,29 +220,6 @@ class Fswatch implements Command
         foreach ($paths as $path) {
             $this->addPath($path);
         }
-
-        return $this;
-    }
-
-    /**
-     * Get the user-defined options.
-     *
-     * @return array
-     */
-    public function getUserOptions()
-    {
-        return $this->userOptions;
-    }
-
-    /**
-     * Set the user-defined options.
-     *
-     * @param  array  $options
-     * @return $this
-     */
-    public function setUserOptions(array $options)
-    {
-        $this->userOptions = $options;
 
         return $this;
     }
