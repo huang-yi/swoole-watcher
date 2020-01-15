@@ -4,10 +4,9 @@ namespace HuangYi\Watcher;
 
 use Closure;
 use HuangYi\Watcher\Contracts\Command;
-use HuangYi\Watcher\Contracts\Watcher as WatcherContract;
 use Swoole\Process;
 
-class Watcher implements WatcherContract
+class Watcher
 {
     /**
      * The command instance.
@@ -50,24 +49,22 @@ class Watcher implements WatcherContract
      */
     protected function init()
     {
-        $command = $this->command->getCommand();
-
-        $this->process = new Process(function ($process) use ($command) {
-            $process->exec(...$command);
+        $this->process = new Process(function ($process) {
+            $process->exec(
+                $this->command->getBinary(),
+                $this->command->getArguments()
+            );
         }, true);
     }
 
     /**
      * Start the watcher.
      *
-     * @param  bool  $start
      * @return void
      */
-    public function watch($start = false)
+    public function start()
     {
-        if ($start) {
-            $this->process->start();
-        }
+        $this->process->start();
 
         swoole_event_add($this->process->pipe, function () {
             $outputs = $this->process->read();
