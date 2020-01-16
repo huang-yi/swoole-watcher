@@ -33,7 +33,7 @@ class Fswatch implements Command
     protected $binary;
 
     /**
-     * The path to be watched.
+     * The paths.
      *
      * @var array
      */
@@ -187,7 +187,7 @@ class Fswatch implements Command
      */
     public function getPaths()
     {
-        return array_keys($this->paths);
+        return $this->paths;
     }
 
     /**
@@ -204,7 +204,9 @@ class Fswatch implements Command
 
         $path = trim($path);
 
-        $this->paths[$path] = true;
+        if (! in_array($path, $this->paths)) {
+            $this->paths[] = $path;
+        }
 
         return $this;
     }
