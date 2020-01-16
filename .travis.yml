@@ -8,12 +8,16 @@ php:
   - '7.4'
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y fswatch
+  - wget https://github.com/emcrisostomo/fswatch/releases/download/1.14.0/fswatch-1.14.0.tar.gz
+  - tar -xzvf fswatch-1.14.0.tar.gz
+  - pushd fswatch-1.14.0 && ./configure && make && sudo make install && popd
   - printf "\n" | pecl install swoole
 
 install:
   - travis_retry composer install --no-suggest --prefer-dist
+
+before_script:
+  - ./tests/watcher
 
 script:
   - composer test

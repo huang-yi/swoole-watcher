@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__.'/../vendor/autoload.php';
+
+use HuangYi\Watcher\Commands\Fswatch;
+use HuangYi\Watcher\Watcher;
+use Swoole\Process;
+
+Process::daemon();
+
+$command = new Fswatch(__DIR__);
+
+$command->setOptions([
+    '--recursive' => true,
+]);
+
+$watcher = new Watcher($command);
+
+$watcher->onChange(function () {
+    touch(__DIR__.'/changed');
+});
+
+$watcher->start();
