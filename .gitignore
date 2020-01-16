@@ -1,5 +1,7 @@
 /.idea
 /vendor
+composer.lock
 .phpunit.result.cache
 phpunit.xml
-composer.lock
+tests/created
+tests/changed
