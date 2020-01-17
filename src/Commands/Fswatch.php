@@ -128,10 +128,7 @@ class Fswatch implements Command
                 throw new InvalidOutputException($outputs);
             }
 
-            $events[] = [
-                'path' => $pieces[0],
-                'events' => $pieces[1],
-            ];
+            $events[] = $pieces;
         }
 
         return $events;
