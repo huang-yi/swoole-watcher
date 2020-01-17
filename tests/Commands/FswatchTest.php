@@ -37,7 +37,7 @@ class FswatchTest extends TestCase
     {
         $events = $this->makeFswatch()->parseEvents('/watched/dir 2');
 
-        $this->assertEquals([['path' => '/watched/dir', 'events' => 2]], $events);
+        $this->assertEquals([['/watched/dir', 2]], $events);
     }
 
 
