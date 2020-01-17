@@ -23,11 +23,18 @@ class Watcher
     protected $process;
 
     /**
-     * The change event callback.
+     * The default callback.
      *
      * @var \Closure
      */
-    protected $callback;
+    protected $changeCallback;
+
+    /**
+     * The events callbacks.
+     *
+     * @var \Closure
+     */
+    protected $callbacks = [];
 
     /**
      * Watcher constructor.
@@ -69,17 +76,17 @@ class Watcher
         swoole_event_add($this->process->pipe, function () {
             $outputs = $this->process->read();
 
-            $this->fireCallback($outputs);
+            $this->fireCallbacks($outputs);
         });
     }
 
     /**
-     * Fire the change event callback.
+     * Fire the callbacks.
      *
      * @param  string  $outputs
      * @return void
      */
-    protected function fireCallback($outputs)
+    protected function fireCallbacks($outputs)
     {
         if ($callback = $this->getCallback()) {
             call_user_func($callback, $outputs);
@@ -89,18 +96,30 @@ class Watcher
     /**
      * Get the callback.
      *
-     * @return \Closure
+     * @return \Closure|null
      */
     public function getCallback()
     {
-        if (! $this->callback) {
+        if (! $this->changeCallback && ! $this->callbacks) {
             return null;
         }
 
         return function ($outputs) {
             $events = $this->command->parseEvents($outputs);
 
-            call_user_func($this->callback, $events);
+            if ($this->changeCallback) {
+                call_user_func($this->changeCallback, $events);
+            }
+
+            if ($this->callbacks) {
+                foreach ($this->callbacks as $event => $callback) {
+                    foreach ($events as $item) {
+                        if ($item[1] | $event === $event) {
+                            call_user_func($callback, $item[0]);
+                        }
+                    }
+                }
+            }
         };
     }
 
@@ -112,7 +131,21 @@ class Watcher
      */
     public function onChange(Closure $callback)
     {
-        $this->callback = $callback;
+        $this->changeCallback = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Register an event callback.
+     *
+     * @param  int  $event
+     * @param  \Closure  $callback
+     * @return $this
+     */
+    public function on(int $event, Closure $callback)
+    {
+        $this->callbacks[$event] = $callback;
 
         return $this;
     }
